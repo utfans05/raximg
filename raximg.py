@@ -1,15 +1,7 @@
 import pyrax 
+import time
 
 pyrax.set_setting("identity_type", "rackspace")
-
-# Start of program. Promtps user for input and returns choice
-def menu():
-    print('Do you want to export, import or share an image?')
-    print('1. Export')
-    print('2. Import')
-     
-    choice = input()
-    return choice
 
 # export task including creating and verify images and containers
 def export():
@@ -33,12 +25,24 @@ def export():
     imgs = pyrax.images
     task = imgs.export_task(imageID, container)
 
-def download():
-    pyrax.set_credentials("txhc4life", "a7ba05b40e6041a1b8f3389416a68c34", region= "DFW")
-    obj = pyrax.cloudfiles
-    data = obj.get()
-    obj.download("/tmp")   
+    # check if image is done uplaoding and progress 
+    # Once done jump to download process
+    task.reload()
+    while task.status == "processing":
+       task.reload()
+       print task.status
+       time.sleep(60)
 
-#menu()
-#export()
-download()
+#def download():
+    # Function to download image
+    #username = raw_input('What is your username? ')
+    #apiKey = raw_input('What is your api key? ')
+    #region = "DFW"
+   
+    #pyrax.set_credentials(username, apiKey, region= region)
+
+    #pyrax.cloudfiles.download_object()
+
+export()
+#import()
+#download()
