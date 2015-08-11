@@ -1,6 +1,7 @@
 import pyrax 
 import time
 import os
+import sys
 
 pyrax.set_setting("identity_type", "rackspace")
 
@@ -40,7 +41,7 @@ def export_img():
     path = os.getcwd()
     # Download file   
     pyrax.cloudfiles.download_object(container, vhd, path)
-
+    
 
 def import_img():
     # get credentials
@@ -72,17 +73,40 @@ def import_img():
        task.reload()
        print task.status
 
-print "Import or Export image?"
-print "1. Export"
-print "2. Import"
-choice = raw_input()
+def menu():
+    print "Import or Export image?"
+    print "1. Export"
+    print "2. Import"
+    choice = raw_input()
+    choice = choice.lower()
 
-if choice == "1": 
-    export_img()
-else: 
-    import_img()
+    if choice == "1": 
+        export_img()
+        menu()
+    if choice == "2": 
+        import_img()
+        menu()
+    if choice in ("q","quit"):
+        exit()
+    else:
+            print "Please enter a 1 or a 2"
 
+    while choice != "q":
+        print "Import or Export image?"
+        print "1.Export"
+        print "2.Export"
+        choice = raw_input()
+        choice = choice.lower()
 
-#import_img()
-#download_vhd()
-#upload_vhd()
+        if choice == "1": 
+            export_img()
+            menu()
+        if choice == "2": 
+            import_img()
+            menu()
+        if choice in ("q", "quit"):
+            exit()
+        else:
+            print "Please enter a 1 or a 2"
+
+menu()
