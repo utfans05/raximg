@@ -2,6 +2,7 @@ import pyrax
 import time
 import os
 import sys
+import getpass
 
 pyrax.set_setting("identity_type", "rackspace")
 
@@ -10,12 +11,15 @@ def export_img():
     # ask user for rackspace credentials
     username = raw_input('What is your username? ')
     apiKey = raw_input('What is your api key? ')
+    apiKey = apiKey.lower()
 
     # ask for imageid, region, and export container
     imageID = raw_input('What is the image id? ')
+    imageID = imageID.lower()
     container = raw_input('What is the name of the container? ')
     region = raw_input('What region is the image in? ')
-    
+    region = region.upper()
+
     # set credentials and default region
     pyrax.set_credentials(username, apiKey, region= region)
 
