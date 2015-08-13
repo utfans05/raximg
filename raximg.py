@@ -8,20 +8,25 @@ pyrax.set_setting("identity_type", "rackspace")
 
 # export task including creating and verify images and containers
 def export_img():
-    # ask user for rackspace credentials
-    username = raw_input('What is your username? ')
-    apiKey = raw_input('What is your api key? ')
-    apiKey = apiKey.lower()
 
-    # ask for imageid, region, and export container
-    imageID = raw_input('What is the image id? ')
-    imageID = imageID.lower()
-    container = raw_input('What is the name of the container? ')
-    region = raw_input('What region is the image in? ')
-    region = region.upper()
+    try:
+        # ask user for rackspace credentials
+        username = raw_input('What is your username? ')
+        apiKey = raw_input('What is your api key? ')
+        apiKey = apiKey.lower()
 
-    # set credentials and default region
-    pyrax.set_credentials(username, apiKey, region= region)
+        # ask for imageid, region, and export container
+        imageID = raw_input('What is the image id? ')
+        imageID = imageID.lower()
+        container = raw_input('What is the name of the container? ')
+        region = raw_input('What region is the image in? ')
+        region = region.upper()
+
+        # set credentials and default region
+    
+        pyrax.set_credentials(username, apiKey, region= region)
+    except:
+        pass
 
     # create container
     cf = pyrax.cloudfiles
@@ -34,6 +39,7 @@ def export_img():
     # check if image is done uplaoding and progress 
     # Once done jump to download process
     task.reload()
+    print task.status
     while task.status == "processing":
        time.sleep(60)
        task.reload()
