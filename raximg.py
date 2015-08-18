@@ -1,122 +1,147 @@
-import pyrax 
+import pyrax
 import time
 import os
 import sys
+import readline
 import getpass
 
 pyrax.set_setting("identity_type", "rackspace")
 
 # export task including creating and verify images and containers
 def export_img():
+    # ask user for rackspace credentials
+    username = raw_input('What is your username? ')
+    apiKey = raw_input('What is your api key? ')
+    apiKey = apiKey.lower()
 
-    try:
-        # ask user for rackspace credentials
-        username = raw_input('What is your username? ')
-        apiKey = raw_input('What is your api key? ')
-        apiKey = apiKey.lower()
+    # ask for imageid, region, and export container
+    imageID = raw_input('What is the image id? ')
+    imageID = imageID.lower()
+    container = raw_input('What is the name of the container? ')
+    region = raw_input('What region is the image in? ')
+    region = region.upper()
 
-        # ask for imageid, region, and export container
-        imageID = raw_input('What is the image id? ')
-        imageID = imageID.lower()
-        container = raw_input('What is the name of the container? ')
-        region = raw_input('What region is the image in? ')
-        region = region.upper()
+    os.system('clear')
 
-        # set credentials and default region
-    
-        pyrax.set_credentials(username, apiKey, region= region)
-    except:
-        pass
+    # set credentials and default region
+    print "Verfiying Credentials..."
+    pyrax.set_credentials(username, apiKey, region= region)
 
     # create container
+    print "Creating container " + container + "..."
     cf = pyrax.cloudfiles
     cf.create_container(container)
 
     # export image
+    print "Exporting " + imageID + "..."
     imgs = pyrax.images
     task = imgs.export_task(imageID, container)
 
-    # check if image is done uplaoding and progress 
-    # Once done jump to download process
+    # check task status
     task.reload()
     print task.status
-    while task.status == "processing":
-       time.sleep(60)
+    while task.status == "processing" or "pending":
+       time.sleep(20)
        task.reload()
-       print task.status
 
-    vhd = imageID + ".vhd"   
-     
+    # append vhd extention to image
+    vhd = imageID + ".vhd"
 
+    # get current working directory
     path = os.getcwd()
-    # Download file   
+
+    # Download file
+    print "Downlading " + vhd + "..."
     pyrax.cloudfiles.download_object(container, vhd, path)
-    
+
+    print "Success"
+
+    #clear screen
+    os.system('clear')
+
 
 def import_img():
     # get credentials
     # ask user for rackspace credentials
     username = raw_input('What is your username? ')
     apiKey = raw_input('What is your api key? ')
+    apiKey = apiKey.lower()
     container = raw_input('What is the name of the container? ')
     region = raw_input('What region are you importing to? ')
+    region = region.upper()
     vhd = raw_input("What is the file name? ")
 
+    os.system('clear')
+
+    # Verify credentials
+    print "Verfiying Credentials..."
     pyrax.set_credentials(username, apiKey, region= region)
 
-     # create container to upload iamge
+    # create container to upload iamge
+    print "Creating container " + container + "..."
     cf = pyrax.cloudfiles
     cf.create_container(container)
 
+    print "Uploading " + vhd + "..."
     pth = os.getcwd() + "/" + vhd
     chksum = pyrax.utils.get_checksum(pth)
     obj = cf.upload_file(container, pth, etag=chksum)
     print "Calculated checksum:", chksum
     print "Stored object etag:", obj.etag
 
+    print "Importing " + vhd + "..."
     imgs = pyrax.images
     task = imgs.import_task(vhd, container)
 
+    # check task status
     task.reload()
-    while task.status == "processing":
-       time.sleep(60)
+    print task.status
+    while task.status == "processing" or "pending":
+       time.sleep(20)
        task.reload()
-       print task.status
+
+    print "Success"
+
+    #clear screen
+    os.system('clear')
 
 def menu():
     print "Import or Export image?"
     print "1. Export"
     print "2. Import"
-    choice = raw_input()
+    choice = raw_input(">> ")
     choice = choice.lower()
+    os.system('clear')
 
-    if choice == "1": 
+    if choice == "1":
         export_img()
         menu()
-    if choice == "2": 
+    elif choice == "2":
         import_img()
         menu()
-    if choice in ("q","quit"):
+    elif choice in ("q","quit"):
         exit()
     else:
-            print "Please enter a 1 or a 2"
+        print "Please enter a 1 or a 2"
 
     while choice != "q":
         print "Import or Export image?"
         print "1.Export"
-        print "2.Export"
-        choice = raw_input()
+        print "2.Import"
+        choice = raw_input(">> ")
         choice = choice.lower()
+        os.system('clear')
 
-        if choice == "1": 
+        if choice == "1":
             export_img()
             menu()
-        if choice == "2": 
+        elif choice == "2":
             import_img()
             menu()
-        if choice in ("q", "quit"):
+        elif choice in ("q", "quit"):
             exit()
         else:
             print "Please enter a 1 or a 2"
 
+os.system('clear')
 menu()
