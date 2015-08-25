@@ -3,23 +3,29 @@ import time
 import os
 import sys
 import readline
-import getpass
-
-pyrax.set_setting("identity_type", "rackspace")
 
 # export task including creating and verify images and containers
 def export_img():
-    # ask user for rackspace credentials
-    username = raw_input('What is your username? ')
-    apiKey = raw_input('What is your api key? ')
-    apiKey = apiKey.lower()
-
     # ask for imageid, region, and export container
-    imageID = raw_input('What is the image id? ')
-    imageID = imageID.lower()
-    container = raw_input('What is the name of the container? ')
     region = raw_input('What region is the image in? ')
     region = region.upper()
+
+    imageID = raw_input('What is the image id? ')
+    imageID = imageID.lower()
+    imgs = pyrax.images
+    imglist = imgs.list_all()
+    imglist =  ''.join(str(e) for e in imglist)
+
+    #        if imageID in imglist:
+    #            print "Foudn Image"
+    #            break
+    #        else:
+    #            raise
+    #    except:
+    #        print "Image does not exist"
+
+    container = raw_input('What is the name of the container? ')
+
 
     os.system('clear')
 
@@ -34,38 +40,60 @@ def export_img():
 
     # export image
     print "Exporting " + imageID + "..."
-    imgs = pyrax.images
     task = imgs.export_task(imageID, container)
 
     # check task status
     task.reload()
     print task.status
-    while task.status == "processing" or "pending":
-       time.sleep(20)
+    while task.status == "processing":
+       time.sleep(1)
        task.reload()
-
-    # append vhd extention to image
-    vhd = imageID + ".vhd"
-
-    # get current working directory
-    path = os.getcwd()
-
-    # Download file
-    print "Downlading " + vhd + "..."
-    pyrax.cloudfiles.download_object(container, vhd, path)
 
     print "Success"
 
     #clear screen
     os.system('clear')
 
+def download_vhd():
+    # get current working directory
+    path = os.getcwd()
+
+    # Download file
+    vhd = raw_input("Enter Filename: ")
+    region = raw_input("Enter Region: ")
+    container = raw_input("Enter Container Name: ")
+
+    print "Verfiying Credentials..."
+    pyrax.set_credentials(username, apiKey, region= region)
+
+    print "Downloading..."
+    pyrax.cloudfiles.download_object(container, vhd, path)
+    print "Success"
+
+    #clear screen
+    os.system('clear')
+
+def upload_vhd():
+    vhd = raw_input("Enter Filename: ")
+    region = raw_input("Enter Region: ")
+    container = raw_input("Enter Container Name: ")
+
+    print "Verfiying Credentials..."
+    pyrax.set_credentials(username, apiKey, region= region)
+
+    # create container to upload iamge
+    print "Creating container " + container + "..."
+    cf = pyrax.cloudfiles
+    cf.create_container(container)
+
+    print "Uploading " + vhd + "..."
+    path = os.getcwd() + "/" + vhd
+    chksum = pyrax.utils.get_checksum(path)
+    obj = cf.upload_file(container, path, etag=chksum)
+    print "Calculated checksum:", chksum
+    print "Stored object etag:", obj.etag
 
 def import_img():
-    # get credentials
-    # ask user for rackspace credentials
-    username = raw_input('What is your username? ')
-    apiKey = raw_input('What is your api key? ')
-    apiKey = apiKey.lower()
     container = raw_input('What is the name of the container? ')
     region = raw_input('What region are you importing to? ')
     region = region.upper()
@@ -78,16 +106,6 @@ def import_img():
     pyrax.set_credentials(username, apiKey, region= region)
 
     # create container to upload iamge
-    print "Creating container " + container + "..."
-    cf = pyrax.cloudfiles
-    cf.create_container(container)
-
-    print "Uploading " + vhd + "..."
-    pth = os.getcwd() + "/" + vhd
-    chksum = pyrax.utils.get_checksum(pth)
-    obj = cf.upload_file(container, pth, etag=chksum)
-    print "Calculated checksum:", chksum
-    print "Stored object etag:", obj.etag
 
     print "Importing " + vhd + "..."
     imgs = pyrax.images
@@ -96,8 +114,8 @@ def import_img():
     # check task status
     task.reload()
     print task.status
-    while task.status == "processing" or "pending":
-       time.sleep(20)
+    while task.status == "processing":
+       time.sleep(1)
        task.reload()
 
     print "Success"
@@ -109,6 +127,8 @@ def menu():
     print "Import or Export image?"
     print "1. Export"
     print "2. Import"
+    print "3. Download VHD"
+    print "4. Upload VHD"
     choice = raw_input(">> ")
     choice = choice.lower()
     os.system('clear')
@@ -119,6 +139,12 @@ def menu():
     elif choice == "2":
         import_img()
         menu()
+    elif choice == "3":
+        download_vhd()
+        menu()
+    elif choice == "4":
+        upload_vhd()
+        menu()
     elif choice in ("q","quit"):
         exit()
     else:
@@ -126,8 +152,10 @@ def menu():
 
     while choice != "q":
         print "Import or Export image?"
-        print "1.Export"
-        print "2.Import"
+        print "1. Export"
+        print "2. Import"
+        print "3. Download VHD"
+        print "4. Upload VHD"
         choice = raw_input(">> ")
         choice = choice.lower()
         os.system('clear')
@@ -138,10 +166,25 @@ def menu():
         elif choice == "2":
             import_img()
             menu()
-        elif choice in ("q", "quit"):
+        elif choice == "3":
+            download_vhd()
+            menu()
+        elif choice == "4":
+            upload_vhd()
+            menu()
+        elif choice in ("q","quit"):
             exit()
         else:
             print "Please enter a 1 or a 2"
 
+pyrax.set_setting("identity_type", "rackspace")
+
 os.system('clear')
+# ask user for rackspace credentials
+username = raw_input('What is your username? ')
+apiKey = raw_input('What is your api key? ')
+apiKey = apiKey.lower()
+
+os.system('clear')
+
 menu()
