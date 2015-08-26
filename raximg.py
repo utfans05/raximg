@@ -7,22 +7,50 @@ import readline
 # export task including creating and verify images and containers
 def export_img():
     # ask for imageid, region, and export container
-    region = raw_input('What region is the image in? ')
-    region = region.upper()
+    while True:
+        try:
+            region = raw_input('What region is the image in? ')
+            region = region.upper()
 
-    imageID = raw_input('What is the image id? ')
-    imageID = imageID.lower()
-    imgs = pyrax.images
-    imglist = imgs.list_all()
-    imglist =  ''.join(str(e) for e in imglist)
+            if region == 'DFW':
+                break
+            elif region == 'LON':
+                break
+            elif region == 'HKG':
+                break
+            elif region == 'IAD':
+                break
+            elif region == 'SYD':
+                break
+            else:
+                raise
 
-    #        if imageID in imglist:
-    #            print "Foudn Image"
-    #            break
-    #        else:
-    #            raise
-    #    except:
-    #        print "Image does not exist"
+
+        except KeyboardInterrupt:
+            exit()
+        except:
+            print "Image not found. Try again."
+
+    while True:
+        try:
+            imageID = raw_input('What is the image id? ')
+            imageID = imageID.lower()
+
+            pyrax.set_credentials(username, apiKey, region= region)
+
+            imgs = pyrax.images
+            imglist = imgs.list_all()
+            imglist = ''.join(str(e) for e in imglist)
+
+            if imageID in imglist:
+                print "Found Image"
+                break
+            else:
+                raise
+        except KeyboardInterrupt:
+            exit()
+        except:
+            print "Image does not exist"
 
     container = raw_input('What is the name of the container? ')
 
