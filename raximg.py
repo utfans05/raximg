@@ -143,8 +143,7 @@ def upload_vhd():
             else:
                 raise
         except:
-            print "File not foudn. Try Again"
-
+            print "File not found. Try Again"
 
     # create container to upload iamge
     print "Creating container " + container + "..."
@@ -156,6 +155,18 @@ def upload_vhd():
     obj = cf.upload_file(container, path, etag=chksum)
     print "Calculated checksum:", chksum
     print "Stored object etag:", obj.etag
+
+    main_menu = raw_input("Return to Main Menu(Y/N): ")
+    main_menu = main_menu.lower()
+
+    if main_menu == "y":
+       os.system('clear')
+       menu()
+    elif main_menu == "yes":
+       os.system('clear')
+       menu()
+    else:
+       exit()
 
 def import_img():
     region = region_check()
@@ -203,14 +214,33 @@ def import_img():
     # check task status
     task.reload()
     print task.status
+
+    while task.status == "pending":
+        time.sleep(10)
+        task.reload
+
+    print task.status
+
     while task.status == "processing":
-       time.sleep(10)
-       task.reload()
+        time.sleep(10)
+        task.reload()
 
-    print "Success"
+    if task.status == "failure":
+        print task.message
+    else:
+        print "Export Task Successful..."
 
-    #clear screen
-    os.system('clear')
+    main_menu = raw_input("Return to Main Menu(Y/N): ")
+    main_menu = main_menu.lower()
+
+    if main_menu == "y":
+       os.system('clear')
+       menu()
+    elif main_menu == "yes":
+       os.system('clear')
+       menu()
+    else:
+       exit()
 
 def region_check():
     while True:
@@ -283,12 +313,17 @@ def menu():
 
 pyrax.set_setting("identity_type", "rackspace")
 
-os.system('clear')
-# ask user for rackspace credentials
-username = raw_input('What is your username? ')
-apiKey = raw_input('What is your api key? ')
-apiKey = apiKey.lower()
+try:
+    os.system('clear')
 
-os.system('clear')
+    username = raw_input('What is your username? ')
+    apiKey = raw_input('What is your api key? ')
+    apiKey = apiKey.lower()
 
-menu()
+    os.system('clear')
+
+    menu()
+except KeyboardInterrupt:
+    exit()
+except:
+    pass
