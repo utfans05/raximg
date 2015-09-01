@@ -205,10 +205,9 @@ def import_img():
             print "File not found. Try again."
 
     os.system('clear')
-
+    imgs = pyrax.images
     # create container to upload iamge
     print "Importing " + vhd + "..."
-    imgs = pyrax.images
     task = imgs.import_task(vhd, container)
 
     # check task status
@@ -313,17 +312,12 @@ def menu():
 
 pyrax.set_setting("identity_type", "rackspace")
 
-try:
-    os.system('clear')
+os.system('clear')
 
-    username = raw_input('What is your username? ')
-    apiKey = raw_input('What is your api key? ')
-    apiKey = apiKey.lower()
+username = raw_input('What is your username? ')
+apiKey = raw_input('What is your api key? ')
+apiKey = apiKey.lower()
 
-    os.system('clear')
+os.system('clear')
 
-    menu()
-except KeyboardInterrupt:
-    exit()
-except:
-    pass
+menu()
