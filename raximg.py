@@ -1,17 +1,9 @@
-#!/Users/rich8475/virtualenvs/rackspace/bin/python
 import pyrax
 import time
 import os
 import os.path
 import sys
 import readline
-
-import requests.packages.urllib3
-requests.packages.urllib3.disable_warnings()
-
-import warnings
-warnings.filterwarnings("ignore")
-
 
 # export task including creating and verify images and containers
 def export_img():
