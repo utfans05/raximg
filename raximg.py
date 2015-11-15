@@ -1,3 +1,4 @@
+#!/Users/rich8475/virtualenvs/rackspace/bin/python
 import pyrax
 import time
 import os
@@ -5,12 +6,19 @@ import os.path
 import sys
 import readline
 
+import requests.packages.urllib3
+requests.packages.urllib3.disable_warnings()
+
+import warnings
+warnings.filterwarnings("ignore")
+
+
 # export task including creating and verify images and containers
 def export_img():
     # get region
     region = region_check()
 
-    pyrax.set_credentials(username, apiKey, region= region)
+    pyrax.set_credentials(username, apiKey, region=region)
 
     imageID = image_check()
 
@@ -28,18 +36,17 @@ def export_img():
     task = imgs.export_task(imageID, container)
 
     # check task status
-    task.reload()
     print task.status
 
     while task.status == "pending":
-        time.sleep(10)
-        task.reload
-
-    print task.status
+        time.sleep(20)
+        task.reload()
+        print task.status
 
     while task.status == "processing":
-        time.sleep(10)
+        time.sleep(20)
         task.reload()
+        print task.status
 
     if task.status == "failure":
         print task.message
@@ -50,13 +57,14 @@ def export_img():
     main_menu = main_menu.lower()
 
     if main_menu == "y":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     elif main_menu == "yes":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     else:
-       exit()
+        exit()
+
 
 def download_vhd():
     # get current working directory
@@ -64,7 +72,7 @@ def download_vhd():
     # Download file
     region = region_check()
 
-    pyrax.set_credentials(username, apiKey, region= region)
+    pyrax.set_credentials(username, apiKey, region=region)
 
     while True:
         try:
@@ -77,8 +85,7 @@ def download_vhd():
         except KeyboardInterrupt:
             menu()
         except:
-              print "Container not found. Try again."
-
+            print "Container not found. Try again."
 
     cf = pyrax.cloudfiles
     cont = cf.get_container(container)
@@ -102,9 +109,14 @@ def download_vhd():
             print "Download Canceled."
             menu()
 
-        except Exception,e:
+        except Exception as e:
             print e
             retry = raw_input("Download failed. Try again. (Y/N): ")
+            ## delete only if file exists ##
+            if os.path.exists(filename):
+                os.remove(filename)
+            else:
+                print("Sorry, I can not remove %s file." % filename)
             if retry.lower() in ("yes" or "y"):
                 pass
             else:
@@ -118,18 +130,19 @@ def download_vhd():
     main_menu = main_menu.lower()
 
     if main_menu == "y":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     elif main_menu == "yes":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     else:
-       exit()
+        exit()
+
 
 def upload_vhd():
     region = region_check()
 
-    pyrax.set_credentials(username, apiKey, region= region)
+    pyrax.set_credentials(username, apiKey, region=region)
 
     container = raw_input("Enter Container Name: ")
 
@@ -160,18 +173,19 @@ def upload_vhd():
     main_menu = main_menu.lower()
 
     if main_menu == "y":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     elif main_menu == "yes":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     else:
-       exit()
+        exit()
+
 
 def import_img():
     region = region_check()
 
-    pyrax.set_credentials(username, apiKey, region= region)
+    pyrax.set_credentials(username, apiKey, region=region)
 
     while True:
         try:
@@ -183,9 +197,9 @@ def import_img():
             else:
                 raise
         except KeyboardInterrupt:
-                exit()
+            exit()
         except:
-                print "Container not found. Try again"
+            print "Container not found. Try again"
 
     cf = pyrax.cloudfiles
     cont = cf.get_container(container)
@@ -211,43 +225,43 @@ def import_img():
     task = imgs.import_task(vhd, container)
 
     # check task status
-    task.reload()
     print task.status
 
     while task.status == "pending":
-        time.sleep(10)
-        task.reload
-
-    print task.status
+        time.sleep(20)
+        task.reload()
+        print task.status
 
     while task.status == "processing":
-        time.sleep(10)
+        time.sleep(20)
         task.reload()
+        print task.status
 
     if task.status == "failure":
         print task.message
     else:
-        print "Export Task Successful..."
+        print "Import Task Successful..."
 
     main_menu = raw_input("Return to Main Menu(Y/N): ")
     main_menu = main_menu.lower()
 
     if main_menu == "y":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     elif main_menu == "yes":
-       os.system('clear')
-       menu()
+        os.system('clear')
+        menu()
     else:
-       exit()
+        exit()
+
 
 def region_check():
     while True:
         try:
-            region = raw_input('What region is the image in? ')
+            region = raw_input('What region do you want to work in? ')
             region = region.upper()
 
-            if region in ['DFW','LON','ORD','HKG','IAD','SYD']:
+            if region in ['DFW', 'LON', 'ORD', 'HKG', 'IAD', 'SYD']:
                 break
             else:
                 raise
@@ -258,6 +272,7 @@ def region_check():
             print "Region not found. [DFW,LON,ORD,HKG,IAD,SYD]."
 
     return region
+
 
 def image_check():
     while True:
@@ -282,6 +297,7 @@ def image_check():
 
     return imageID
 
+
 def menu():
     while True:
         print "Import or Export image?"
@@ -305,7 +321,7 @@ def menu():
         elif choice == "4":
             upload_vhd()
             menu()
-        elif choice.lower() in ("q","quit","exit"):
+        elif choice.lower() in ("q", "quit", "exit"):
             exit()
         else:
             print "Please enter a 1, 2, 3, or 4. Q to quit."
