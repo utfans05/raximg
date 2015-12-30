@@ -1,8 +1,3 @@
 WIP
 
-This script is still not functional. Using this repo to sync multiple workstations.
-
-When the script is running, I will update docs with usage information.
-
-*** HAVING ISSUES with images not building once they are imported to the new region. I have had mixed results with the building of servers from the imported vhd.  I am currently investigating this issue.
-=
+Rewriting this script using requests. Images are building out once exported to another region. Image exporting causes image meta data to be changed. Some vm's require the vm_mode set to hvm to build correctly. The export task defaults to xen in the vm_mode meta data. The meta data can be changed via the rackspace api or the nova/glance client.

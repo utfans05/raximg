@@ -1,331 +1,87 @@
-import pyrax
-import time
-import os
-import os.path
-import sys
-import readline
+import requests
 
-# export task including creating and verify images and containers
-def export_img():
-    # get region
-    region = region_check()
-
-    pyrax.set_credentials(username, apiKey, region=region)
-
-    imageID = image_check()
-
-    container = raw_input('What is the name of the container? ')
-
-    os.system('clear')
-
-    # create container
-    print "Creating container " + container + "..."
-    cf = pyrax.cloudfiles
-    cf.create_container(container)
-
-    # export image
-    print "Exporting " + imageID + "..."
-    task = imgs.export_task(imageID, container)
-
-    # check task status
-    print task.status
-
-    while task.status == "pending":
-        time.sleep(20)
-        task.reload()
-        print task.status
-
-    while task.status == "processing":
-        time.sleep(20)
-        task.reload()
-        print task.status
-
-    if task.status == "failure":
-        print task.message
-    else:
-        print "Export Task Successful..."
-
-    main_menu = raw_input("Return to Main Menu(Y/N): ")
-    main_menu = main_menu.lower()
-
-    if main_menu == "y":
-        os.system('clear')
-        menu()
-    elif main_menu == "yes":
-        os.system('clear')
-        menu()
-    else:
-        exit()
-
-
-def download_vhd():
-    # get current working directory
-    path = os.getcwd()
-    # Download file
-    region = region_check()
-
-    pyrax.set_credentials(username, apiKey, region=region)
-
-    while True:
-        try:
-            container = raw_input("Enter Container Name: ")
-            if container in pyrax.cloudfiles.list_containers():
-                print "Found Container."
-                break
-            else:
-                raise
-        except KeyboardInterrupt:
-            menu()
-        except:
-            print "Container not found. Try again."
-
-    cf = pyrax.cloudfiles
-    cont = cf.get_container(container)
-    cont = cont.get_objects()
-    container_list = ''.join(str(e) for e in cont)
-
-    while True:
-        vhd = raw_input("Enter Filename: ")
-        if vhd in container_list:
-            print "File found"
-            break
+def walk(obj, key):
+    stack = obj.items()
+    while stack:
+        k, v = stack.pop()
+        if isinstance(v, dict):
+            stack.extend(v.iteritems())
         else:
-            print "File not found. Try again"
+            if k == key:
+                if len(v) == 6:
+                    account = v
+                elif len(v) == 142:
+                    return v, account
+                    #print("%s: %s" % (k,v))
 
-    while True:
-        try:
-            print "Downloading..."
-            pyrax.cloudfiles.download_object(container, vhd, path)
+def get_token(username,passwd):
+    url = "https://identity.api.rackspacecloud.com/v2.0/tokens"
+    headers = {'Content-type': 'application/json'}
+    payload = {'auth':{'passwordCredentials':{'username': username,'password': password}}}
+    r = requests.post(url, headers=headers, json=payload)
+    data = r.json()
+    token = walk(data, 'id')
+    return token
 
-        except KeyboardInterrupt:
-            print "Download Canceled."
-            menu()
+def create_container(token, account):
+    region = raw_input("Region: ")
+    container = raw_input("Container: ")
 
-        except Exception as e:
-            print e
-            retry = raw_input("Download failed. Try again. (Y/N): ")
-            ## delete only if file exists ##
-            if os.path.exists(filename):
-                os.remove(filename)
-            else:
-                print("Sorry, I can not remove %s file." % filename)
-            if retry.lower() in ("yes" or "y"):
-                pass
-            else:
-                menu()
-        else:
-            break
+    if region == "dfw":
+        url = "https://storage101.dfw1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container
+    elif region == "iad":
+        url = "https://storage101.iad3.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container
+    elif region == "ord":
+        url = "https://storage101.ord1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container
+    elif region == "syd":
+        url = "https://storage101.syd2.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container
+    elif region == "hkg":
+        url = "https://storage101.hkg1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container
 
-    print "Success!"
+    headers = {"X-Auth-Token": token}
+    r = requests.put(url, headers=headers)
 
-    main_menu = raw_input("Return to Main Menu(Y/N): ")
-    main_menu = main_menu.lower()
+def export_img(token):
+    region = raw_input('region: ')
+    container = raw_input('container: ')
+    img_id = raw_input('image id: ')
 
-    if main_menu == "y":
-        os.system('clear')
-        menu()
-    elif main_menu == "yes":
-        os.system('clear')
-        menu()
-    else:
-        exit()
+    url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks"
+    headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
+    payload = {"type": "export","input":{"image_uuid": img_id,"receiving_swift_container": container}}
+    r = requests.post(url, headers=headers, json=payload)
+    data = r.json()
+    print(data)
 
+def download_vhd(token, account):
+    region = raw_input("Region: ")
+    container = raw_input("Container: ")
+    vhd = raw_input("File: ")
 
-def upload_vhd():
-    region = region_check()
+    if region == "dfw":
+        url = "https://storage101.dfw1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + vhd
+    elif region == "iad":
+        url = "https://storage101.iad3.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + vhd
+    elif region == "ord":
+        url = "https://storage101.ord1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + vhd
+    elif region == "syd":
+        url = "https://storage101.syd2.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + vhd
+    elif region == "hkg":
+        url = "https://storage101.hkg1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + vhd
 
-    pyrax.set_credentials(username, apiKey, region=region)
+    headers = {"X-Auth-Token": token}
+    r = requests.get(url,headers=headers, stream=True)
+    with open(vhd, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk: # filter out keep-alive new chunks
+                f.write(chunk)
+                #f.flush() commented by recommendation from J.F.Sebastian
+    return vhd
 
-    container = raw_input("Enter Container Name: ")
+username = raw_input('username: ')
+password = raw_input('password: ')
 
-    while True:
-        try:
-            vhd = raw_input("Enter Filename: ")
-            path = os.getcwd() + "/" + vhd
-            if os.path.isfile(path):
-                print "File found"
-                break
-            else:
-                raise
-        except:
-            print "File not found. Try Again"
-
-    # create container to upload iamge
-    print "Creating container " + container + "..."
-    cf = pyrax.cloudfiles
-    cf.create_container(container)
-
-    print "Uploading " + vhd + "..."
-    chksum = pyrax.utils.get_checksum(path)
-    obj = cf.upload_file(container, path, etag=chksum)
-    print "Calculated checksum:", chksum
-    print "Stored object etag:", obj.etag
-
-    main_menu = raw_input("Return to Main Menu(Y/N): ")
-    main_menu = main_menu.lower()
-
-    if main_menu == "y":
-        os.system('clear')
-        menu()
-    elif main_menu == "yes":
-        os.system('clear')
-        menu()
-    else:
-        exit()
-
-
-def import_img():
-    region = region_check()
-
-    pyrax.set_credentials(username, apiKey, region=region)
-
-    while True:
-        try:
-            container = raw_input('What is the name of the container? ')
-
-            if container in pyrax.cloudfiles.list_containers():
-                print "Found Container."
-                break
-            else:
-                raise
-        except KeyboardInterrupt:
-            exit()
-        except:
-            print "Container not found. Try again"
-
-    cf = pyrax.cloudfiles
-    cont = cf.get_container(container)
-    cont = cont.get_objects()
-    container_list = ''.join(str(e) for e in cont)
-
-    while True:
-        try:
-            vhd = raw_input("What is the file name? ")
-
-            if vhd in container_list:
-                print "File found"
-                break
-            else:
-                raise
-        except:
-            print "File not found. Try again."
-
-    os.system('clear')
-    imgs = pyrax.images
-    # create container to upload iamge
-    print "Importing " + vhd + "..."
-    task = imgs.import_task(vhd, container)
-
-    # check task status
-    print task.status
-
-    while task.status == "pending":
-        time.sleep(20)
-        task.reload()
-        print task.status
-
-    while task.status == "processing":
-        time.sleep(20)
-        task.reload()
-        print task.status
-
-    if task.status == "failure":
-        print task.message
-    else:
-        print "Import Task Successful..."
-
-    main_menu = raw_input("Return to Main Menu(Y/N): ")
-    main_menu = main_menu.lower()
-
-    if main_menu == "y":
-        os.system('clear')
-        menu()
-    elif main_menu == "yes":
-        os.system('clear')
-        menu()
-    else:
-        exit()
-
-
-def region_check():
-    while True:
-        try:
-            region = raw_input('What region do you want to work in? ')
-            region = region.upper()
-
-            if region in ['DFW', 'LON', 'ORD', 'HKG', 'IAD', 'SYD']:
-                break
-            else:
-                raise
-
-        except KeyboardInterrupt:
-            exit()
-        except:
-            print "Region not found. [DFW,LON,ORD,HKG,IAD,SYD]."
-
-    return region
-
-
-def image_check():
-    while True:
-        try:
-            imageID = raw_input('What is the image id? ')
-            imageID = imageID.lower()
-
-            global imgs
-            imgs = pyrax.images
-            imglist = imgs.list_all()
-            imglist = ''.join(str(e) for e in imglist)
-
-            if imageID in imglist:
-                print "Found Image"
-                break
-            else:
-                raise
-        except KeyboardInterrupt:
-            exit()
-        except:
-            print "Image does not exist"
-
-    return imageID
-
-
-def menu():
-    while True:
-        print "Import or Export image?"
-        print "1. Export"
-        print "2. Import"
-        print "3. Download VHD"
-        print "4. Upload VHD"
-        choice = raw_input(">> ")
-
-        os.system('clear')
-
-        if choice == "1":
-            export_img()
-            menu()
-        elif choice == "2":
-            import_img()
-            menu()
-        elif choice == "3":
-            download_vhd()
-            menu()
-        elif choice == "4":
-            upload_vhd()
-            menu()
-        elif choice.lower() in ("q", "quit", "exit"):
-            exit()
-        else:
-            print "Please enter a 1, 2, 3, or 4. Q to quit."
-
-pyrax.set_setting("identity_type", "rackspace")
-
-os.system('clear')
-
-username = raw_input('What is your username? ')
-apiKey = raw_input('What is your api key? ')
-apiKey = apiKey.lower()
-
-os.system('clear')
-
-menu()
+token, account = get_token(username,password)
+#create_container(token, account)
+#export_img(token)
+download_vhd(token, account)
