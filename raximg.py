@@ -1,31 +1,16 @@
 import requests
 import getpass
 import readline
-
-# function that walks nested json for keys
-def walk(obj, key):
-    stack = obj.items()
-    while stack:
-        k, v = stack.pop()
-        if isinstance(v, dict):
-            stack.extend(v.iteritems())
-        else:
-            if k == key:
-                if len(v) == 6:
-                    account = v
-                elif len(v) == 142:
-                    return v, account
-                    #print("%s: %s" % (k,v))
+import time
 
 # request to authenticate and returns a tuple with token and account number
-def get_token(username,passwd):
+def get_token(username,password):
     url = "https://identity.api.rackspacecloud.com/v2.0/tokens"
     headers = {'Content-type': 'application/json'}
     payload = {'auth':{'passwordCredentials':{'username': username,'password': password}}}
     r = requests.post(url, headers=headers, json=payload)
-    data = r.json()
-    token = walk(data, 'id')
-    return token
+    print r.json()
+
 
 def create_container(token, account, region, container):
     if region == "dfw":
@@ -53,6 +38,10 @@ def export_img(token):
     headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
     payload = {"type": "export","input":{"image_uuid": img_id,"receiving_swift_container": container}}
     r = requests.post(url, headers=headers, json=payload)
+    data = r.json()
+    task_id = walk(data,'id')
+    print(task_id)
+    task_status(region, task_id)
 
 def download_vhd(token, account):
     region = raw_input("Region: ")
@@ -122,6 +111,22 @@ def update_img(token):
     data = r.json()
     print(data)
 
+def task_status(region, task_id):
+    url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks" + "/" + task_id
+    headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
+    r = requests.get(url, headers=headers)
+    data = r.text
+    print(data)
+    status = walk(data, 'status')
+    print(status)
+    while(status != 'success'):
+        r = requests.get(url, headers=headers)
+        data = r.text
+        status = walk(data,'status')
+        print(status)
+        time.sleep(15)
+    print(status)
+
 def menu():
     print("Choose an action: ")
     print("1. export")
@@ -151,8 +156,8 @@ username = raw_input('username: ')
 password = getpass.getpass('password: ')
 
 # grab token and account info
-token, account = get_token(username,password)
+token = get_token(username,password)
 
 # ask the user what to do
-menu()
+#menu()
 #update_img(token)
