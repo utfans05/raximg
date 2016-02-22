@@ -5,6 +5,7 @@ import time
 import json
 import argparse
 import logging
+import sys
 logging.captureWarnings(True)
 
 parser = argparse.ArgumentParser()
@@ -21,7 +22,38 @@ def get_token(username,password):
     url = "https://identity.api.rackspacecloud.com/v2.0/tokens"
     headers = {'Content-type': 'application/json'}
     payload = {'auth':{'passwordCredentials':{'username': username,'password': password}}}
-    r = requests.post(url, headers=headers, json=payload)
+
+    try:
+        r = requests.post(url, headers=headers, json=payload)
+    except requests.ConnectionError as e:
+        print("Connection Error: Check your interwebs!")
+        sys.exit()
+
+    if r.status_code == 200:
+        print("OK. Operation completed successfully.")
+    elif r.status_code == 400:
+        print("Bad Request. Missing required parameters. This error also occurs if you include both the tenant name and ID in the request.")
+        sys.exit()
+    elif r.status_code == 401:
+        print("Unauthorized. This error message might indicate any of the following conditions:")
+        print("    -You are not authorized to complete this operation.")
+        print("    -Additional authentication credentials required. Submit a second authentication request with multi-factor authentication credentials")
+        sys.exit()
+    elif r.status_code == 403:
+        print("User disabled Forbidden")
+        print("    -The User disabled message indicates that the request is valid, but the user doesn’t have access to the requested resource. Check with the account administrator to request access.")
+        print("    -The Forbidden message might be returned because your account requires multi-factor authentication, and the feature has not been set up. See Request to set up multi-factor authentication on a user account.")
+        sys.exit()
+    elif r.status_code == 404:
+        print("Item not found. The requested resource was not found. The subject token in X-Subject-Token has expired or is no longer available. Use the POST token request to get a new token.")
+        sys.exit()
+    elif r.status_code == 500:
+        print("Service Fault. Service is not available")
+        sys.exit()
+    else:
+        print("Unknown Authentication Error")
+        sys.exit
+
     data = r.json()
     token = (data["access"]["token"]["id"])
     account = (data["access"]["token"]["tenant"]["id"])
@@ -40,15 +72,83 @@ def create_container(token, account, region, container):
         url = "https://storage101.hkg1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container
 
     headers = {"X-Auth-Token": token}
-    r = requests.put(url, headers=headers)
 
+    #Check to see if container exists. If it does  not "status_code == 404" then create the container.
+    try:
+        r = requests.get(url,headers=headers)
+    except requests.ConnectionError as e:
+        print("Check your interwebs!")
+        sys.exit()
+
+    if r.status_code == 200:
+        print("OK. 	The request succeeded.")
+    elif r.status_code == 204:
+     	print("No Content 	The request succeeded. The server fulfilled the request but does not need to return a body.")
+    elif r.status_code == 404:
+        print("The requested resource was not found.")
+        print("Creating conatiner.")
+        try:
+            r = requests.put(url, headers=headers)
+        except requests.ConnectionError as e:
+            print("Check your interwebs!")
+
+        if r.status_code == 201:
+            print("Created . The request has been fulfilled. The new container has been created.")
+        elif r.status_code == 202:
+            print("Accepted 	The request has been fulfilled. For 202 Accepted, the request has been accepted for processing.")
+        elif r.status_code == 400:
+            print("Bad Request 	The request could not be understood by the server due to malformed syntax.")
+        elif r.status_code == 409:
+            print("Conflict. The request could not be completed due to a conflict with the current state of the resource.")
+            sys.exit()
+        else:
+            print("Unkown Error")
+            sys.exit()
+
+#exports image task and checks the status via api
 def export_img(token,account,region,container,image):
     create_container(token,account,region,container)
 
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks"
     headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
     payload = {"type": "export","input":{"image_uuid": image,"receiving_swift_container": container}}
-    r = requests.post(url, headers=headers, json=payload)
+
+    try:
+        r = requests.post(url, headers=headers, json=payload)
+    except requests.ConnectionError as e:
+        print("Check your interwebs!")
+        sys.exit()
+
+        if r.status_code == 201:
+            print("Success Request succeeded.")
+        elif r.status_code == 400:
+            print("A general error has occured.")
+            sys.exit()
+        elif r.status_code == 401:
+            print("Unauthorized")
+            sys.exit()
+        elif r.status_code == 403:
+            print("Forbidden")
+            sys.exit()
+        elif r.status_code == 405:
+            print("Bad Method")
+            sys.exit()
+        elif r.status_code == 413:
+            print("Over Limit 	The number of items returned is above the allowed limit.")
+            sys.exit()
+        elif r.status_code == 415:
+            print("Bad media type. This may result if the wrong media type is used in the cURL request.")
+            sys.exit()
+        elif r.status_code == 500:
+            print("API Fault")
+            sys.exit()
+        elif r.status_code == 503:
+            print("The requested service is unavailable.")
+            sys.exit()
+        else:
+            print("Unknown Error")
+            sys.exit
+
     data = r.json()
     task_id = data["id"]
     task_status(token,region,task_id)
@@ -66,13 +166,25 @@ def download_img(token, account, region, image, container):
         url = "https://storage101.hkg1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + image
 
     headers = {"X-Auth-Token": token}
-    r = requests.get(url,headers=headers, stream=True)
+
+    try:
+        r = requests.get(url,headers=headers, stream=True)
+    except requests.ConnectionError as e:
+        print("Check your interwebs!")
+        sys.exit()
+
+    if r.status_code == 200:
+        print("File Found. Starting download")
+    else:
+        print("File not found. Try again.")
+        sys.exit()
+
     with open(image, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
-            if chunk: # filter out keep-alive new chunks
+            if chunk:
                 f.write(chunk)
-                #f.flush() commented by recommendation from J.F.Sebastian
-    return image
+                #f.flush()
+    #return image
 
 def upload_img(token, account,region, container, image):
     create_container(token,account,region,container)
@@ -89,14 +201,56 @@ def upload_img(token, account,region, container, image):
         url = "https://storage101.hkg1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + image
 
     headers = {"X-Auth-Token": token, "Content-Type": "application/octet-stream"}
-    with open(image, 'rb') as f:
-        r = requests.put(url,headers=headers,data=f)
 
-def import_img(token, image, container):
+    try:
+        with open(image, 'rb') as f:
+            r = requests.put(url,headers=headers,data=f)
+    except requests.ConnectionError as e:
+        print("Check your interwebs!")
+
+    print("Upload Finished.")
+
+#import img task and checks status of task
+def import_img(token, region, image, container):
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks"
     headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
     payload = {"type": "import","input":{"image_properties": {"name": image},"import_from": container + "/" + image}}
-    r = requests.post(url, headers=headers, json=payload)
+
+    try:
+        r = requests.post(url, headers=headers, json=payload)
+    except requests.ConnectionError as e:
+        print("Check your interwebs!")
+        sys.exit()
+
+    if r.status_code == 201:
+        print("Success Request succeeded.")
+    elif r.status_code == 400:
+        print("A general error has occured.")
+        sys.exit()
+    elif r.status_code == 401:
+        print("Unauthorized")
+        sys.exit()
+    elif r.status_code == 403:
+        print("Forbidden")
+        sys.exit()
+    elif r.status_code == 405:
+        print("Bad Method")
+        sys.exit()
+    elif r.status_code == 413:
+        print("Over Limit 	The number of items returned is above the allowed limit.")
+        sys.exit()
+    elif r.status_code == 415:
+        print("Bad media type. This may result if the wrong media type is used in the cURL request.")
+        sys.exit()
+    elif r.status_code == 500:
+        print("API Fault")
+        sys.exit()
+    elif r.status_code == 503:
+        print("The requested service is unavailable.")
+        sys.exit()
+    else:
+        print("Unknown Error")
+        sys.exit
 
     data = r.json()
     task_id = data["id"]
@@ -113,29 +267,68 @@ def update_img(token,region,image):
 def task_status(token, region, task_id):
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks" + "/" + task_id
     headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
-    r = requests.get(url, headers=headers)
+
+    try:
+        r = requests.get(url, headers=headers)
+    except requests.ConnectionError as e:
+        print("Check your interwebs!")
+        sys.exit()
+
+    if r.status_code == 201:
+        print("Success Request succeeded.")
+    elif r.status_code == 400:
+        print("A general error has occured.")
+        sys.exit()
+    elif r.status_code == 401:
+        print("Unauthorized")
+        sys.exit()
+    elif r.status_code == 403:
+        print("Forbidden")
+        sys.exit()
+    elif r.status_code == 405:
+        print("Bad Method")
+        sys.exit()
+    elif r.status_code == 413:
+        print("Over Limit 	The number of items returned is above the allowed limit.")
+        sys.exit()
+    elif r.status_code == 415:
+        print("Bad media type. This may result if the wrong media type is used in the cURL request.")
+        sys.exit()
+    elif r.status_code == 500:
+        print("API Fault")
+        sys.exit()
+    elif r.status_code == 503:
+        print("The requested service is unavailable.")
+        sys.exit()
+    else:
+        print("Unknown Error")
+        sys.exit
+
     data = r.json()
     status = data["status"]
-    print(status)
-    while(status != 'success'):
+    while status != 'success'and status != 'failure':
+        print(status)
         r = requests.get(url, headers=headers)
         data = r.json()
         status = data["status"]
-        print(status)
         time.sleep(15)
-    if status == 'failure':
-        print("Something went wrong.")
+        if status == 'failure':
+            print("Something went wrong.")
+            print(data["message"])
+
     print(status)
 
+# get token and account information
 token,account = get_token(args.username,args.password)
 
+# actino against function and call with optional arguments
 if args.action == "export":
     export_img(token, account, args.region,args.container, args.image)
 elif args.action == "import":
-    import_img(token, args.image, args.container)
+    import_img(token, args.region, args.container, args.image)
 elif args.action == "download":
     download_img(token, account, args.region, args.image, args.container)
 elif args.action == "upload":
     upload_img(token, account, args.region, args.container, args.image)
 else:
-    print("bad input")
+    print("Bad Input. Try Again.")
