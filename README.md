@@ -4,22 +4,31 @@ Rewriting this script using requests. Images are building out once exported to a
 
 USAGE:
 positional arguments:
-  action                Actions include: import,export,download, status,
+  action                
+
+Actions include: import,export,download, status,
                         upload or update
 
 optional arguments:
+
   -h, --help            show this help message and exit
+
   -u USERNAME, --username USERNAME
                         Rackspace cloud account username.
+
   -p PASSWORD, --password PASSWORD
                         Rackspace cloud account password.
+
   -i IMAGE, --image IMAGE
                         Image to use for action.
+
   -c CONTAINER, --container CONTAINER
                         Container to use for action.
+
   -r REGION, --region REGION
                         Region of the image.
+
   -f FILE, --file FILE  Filename to download/upload.
 
 EXAMPLE:
-raximg export -u <username> -p <password> -r <region> -c <container> -i <image>
+raximg export -u $username -p $password -r $region -c $container -i $image
