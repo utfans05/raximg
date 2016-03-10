@@ -31,7 +31,4 @@ optional arguments:
   -f FILE, --file FILE  Filename to download/upload.
 
 EXAMPLE:
-raximg export -u $username -p $password -r $region -c $container -i $image
-raximg download -u $username -p $password -r $region -c $container -f $file
-raximg upload -u $username -p $password -r $region -c $container -f $file
-raximg import -u $username -p $password -r $region -c $container -f $file 
+raximg export -u $username -p $password -r $region -c $container -i $image 
