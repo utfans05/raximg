@@ -204,11 +204,12 @@ def import_img(token, region, container, vhd):
 
 def update_img(token,region,image):
     url = "https://" + region + ".images.api.rackspacecloud.com/v2/images/" + image
-    headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
-    payload = {"op": "add", "path": "vm_mode", "value": "hvm"}
-    r = requests.patch(url,headers=headers, json=payload)
-    data = r.json()
-    print(data)
+    headers = {'Content-Type': 'application/openstack-images-v2.1-json-patch', 'X-Auth-Token': token}
+    payload = [{"op": "add", "path": "/vm_mode", "value": "hvm"}]
+    r = requests.patch(url, json=payload, headers=headers)
+    print(r.text)
+    print(r.json)
+    #print(data)
 
 def task_status(token, region, task_id):
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks" + "/" + task_id
@@ -216,10 +217,14 @@ def task_status(token, region, task_id):
 
     try:
         r = requests.get(url, headers=headers)
+        print("test1")
+        print(r.status_code)
     except requests.ConnectionError as e:
         print("Check your interwebs!")
         sys.exit()
 
+    print("test2")
+    print(r.status_code)
     if r.status_code == 201:
         print("Success Request succeeded.")
     elif r.status_code == 400:
@@ -254,7 +259,7 @@ def task_status(token, region, task_id):
         r = requests.get(url, headers=headers)
         data = r.json()
         status = data["status"]
-        time.sleep(15)
+        time.sleep(30)
         if status == 'failure':
             print("Something went wrong.")
             print(data["message"])
@@ -310,7 +315,7 @@ def create_container(token, account, region, container):
 
 #Create parser to parse command line arguments.
 parser = argparse.ArgumentParser()
-parser.add_argument("action", help="Actions include: import,export,download, status, upload or update")
+parser.add_argument("action", help="Actions include: import,export,download, upload or update")
 parser.add_argument("-u", "--username", help="Rackspace cloud account username.")
 parser.add_argument("-p", "--password", help="Rackspace cloud account password.")
 parser.add_argument("-i", "--image", help="Image to use for action.")
