@@ -1,13 +1,14 @@
+This script is not supported by Rackspace. I am learning python and using this project to practice what I am learning. Advise and code contributions are welcomed.
+
 ***WIP
 
-Rewriting this script using requests. Images are building out once exported to another region. Image exporting causes image meta data to be changed. Some vm's require the vm_mode set to hvm to build correctly. The export task defaults to xen in the vm_mode meta data. The meta data can be changed via the rackspace api or the nova/glance client.
+PVHVM cloud servers require the image meta data field vm_mode to be set to hvm, in order to build correctly. The export task changes most of the meta data and the default value for vm_mode is xen. To change the vm_mode field to hvm you can use the update action.
 
 USAGE:
 positional arguments:
-  action                
+  action
 
-Actions include: import,export,download, status,
-                        upload or update
+Actions include: import,export,download, status,upload or update.
 
 optional arguments:
 
@@ -31,4 +32,5 @@ optional arguments:
   -f FILE, --file FILE  Filename to download/upload.
 
 EXAMPLE:
-raximg export -u $username -p $password -r $region -c $container -i $image 
+raximg export -u $username -p $password -r $region -c $container -i $image
+raximg update -u $username -p $password -r $region -i $image
