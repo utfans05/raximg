@@ -1,24 +1,27 @@
+#!/usr/bin/python
 import requests
 import time
-#import json
 import argparse
 import logging
 import sys
 from clint.textui import progress
 logging.captureWarnings(True)
 
-# Request to authenticate and returns a tuple with token and account number
+#Request to authenticate and returns a tuple with token and account number.
 def get_token(username,password):
+    #setting up api call
     url = "https://identity.api.rackspacecloud.com/v2.0/tokens"
     headers = {'Content-type': 'application/json'}
     payload = {'auth':{'passwordCredentials':{'username': username,'password': password}}}
 
+    #authenticating against the identity
     try:
         r = requests.post(url, headers=headers, json=payload)
     except requests.ConnectionError as e:
         print("Connection Error: Check your interwebs!")
         sys.exit()
 
+    #Check status code. If not sucessful, exit.
     if r.status_code == 200:
         print("OK. Operation completed successfully.")
     elif r.status_code == 400:
@@ -44,25 +47,31 @@ def get_token(username,password):
         print("Unknown Authentication Error")
         sys.exit
 
+    #loads json reponse into data as a dictionary.
     data = r.json()
+    #assign token and account variables with info from json response.
     token = (data["access"]["token"]["id"])
     account = (data["access"]["token"]["tenant"]["id"])
     return token,account
 
-#exports image task and checks the status via api
+#Exports image task and checks the status.
 def export_img(token,account,region,container,image):
+    #Checks whether container exists. If it doesn't  it gets created.
     create_container(token,account,region,container)
 
+    #setting up the api call.
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks"
     headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
     payload = {"type": "export","input":{"image_uuid": image,"receiving_swift_container": container}}
 
+    #Making the api call.
     try:
         r = requests.post(url, headers=headers, json=payload)
     except requests.ConnectionError as e:
         print("Check your interwebs!")
         sys.exit()
 
+        #checks status code from response.
         if r.status_code == 201:
             print("Success Request succeeded.")
         elif r.status_code == 400:
@@ -90,11 +99,18 @@ def export_img(token,account,region,container,image):
             print("The requested service is unavailable.")
             sys.exit()
 
+    #load json reponse into data
     data = r.json()
+    #assign task id from json respons to task_id
     task_id = data["id"]
+    print(task_id)
+    #check status of task
     task_status(token,region,task_id)
 
+#Downloads vhd file and shows progress bar.
 def download_img(token, account, region, container, vhd):
+    #Setting up the api call.
+    #check region and assign proper endopoint to url.
     if region == "dfw":
         url = "https://storage101.dfw1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + vhd
     elif region == "iad":
@@ -108,29 +124,35 @@ def download_img(token, account, region, container, vhd):
 
     headers = {"X-Auth-Token": token}
 
+    #api call
     try:
         r = requests.get(url,headers=headers, stream=True)
     except requests.ConnectionError as e:
         print("Check your interwebs!")
         sys.exit()
 
+    #Check status cdoe from response.
     if r.status_code == 200:
         print("File Found. Starting download")
     else:
         print("File not found. Try again.")
         sys.exit()
 
+    #Download file. Clint library is used for the progress bar.
     with open(vhd, 'wb') as f:
         total_length = int(r.headers.get('content-length'))
         for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1):
             if chunk:
                 f.write(chunk)
                 f.flush()
-    #return image
 
+#Uploads file to Cloud Files container, progress bar has not been implemented.
 def upload_img(token, account,region, container, vhd):
+    #Creates container if it does not exist.
     create_container(token,account,region,container)
 
+    #Setting up the api call.
+    #check region and assign proper endopoint to url.
     if region == "dfw":
         url = "https://storage101.dfw1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container + "/" + vhd
     elif region == "iad":
@@ -144,8 +166,8 @@ def upload_img(token, account,region, container, vhd):
 
     headers = {"X-Auth-Token": token, "Content-Type": "application/octet-stream"}
 
+    #Upload file. Progress bar is not working.
     try:
-
         with open(vhd, 'rb') as f:
             r = requests.put(url,headers=headers,data=f)
             total_length = int(r.headers.get('content-length'))
@@ -156,18 +178,21 @@ def upload_img(token, account,region, container, vhd):
 
     print("Upload Finished.")
 
-#import img task and checks status of task
+#Import img task and checks status of task
 def import_img(token, region, container, vhd):
+    #Setup api call
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks"
     headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
     payload = {"type": "import","input":{"image_properties": {"name": vhd},"import_from": container + "/" + vhd}}
 
+    #Making the api call.
     try:
         r = requests.post(url, headers=headers, json=payload)
     except requests.ConnectionError as e:
         print("Check your interwebs!")
         sys.exit()
 
+    #Check status code.
     if r.status_code == 201:
         print("Success Request succeeded.")
     elif r.status_code == 400:
@@ -198,31 +223,44 @@ def import_img(token, region, container, vhd):
         print("Unknown Error")
         sys.exit
 
+    #Loads json reponse as dictionary into data
     data = r.json()
+    #Assing task id in order to checks task status.
     task_id = data["id"]
+    #Check task status.
     task_status(token,region,task_id)
 
+#Updates the image meta data filed vm_mode to hvm
 def update_img(token,region,image):
+    #Setting up the api call.
     url = "https://" + region + ".images.api.rackspacecloud.com/v2/images/" + image
     headers = {'Content-Type': 'application/openstack-images-v2.1-json-patch', 'X-Auth-Token': token}
     payload = [{"op": "add", "path": "/vm_mode", "value": "hvm"}]
+    #Making the api call. Need to add a try block.
     r = requests.patch(url, json=payload, headers=headers)
+    #print responses. Changing this up for only info that is relevant.
     print(r.text)
     print(r.json)
-    #print(data)
 
+
+#Checks the status of the export/import task.
 def task_status(token, region, task_id):
+    #Setup the api call.
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks" + "/" + task_id
-    headers = {'Content-type': 'application/json', 'X-Auth-Token': token}
+    headers = {'X-Auth-Token': token}
 
+    #Making the api call. Need to clean up the debug output.
     try:
         r = requests.get(url, headers=headers)
+        print(r.headers)
+        print(r.text['0'])
         print("test1")
         print(r.status_code)
     except requests.ConnectionError as e:
         print("Check your interwebs!")
         sys.exit()
 
+    #Check status code. Need to clean up the debug output.
     print("test2")
     print(r.status_code)
     if r.status_code == 201:
@@ -252,22 +290,63 @@ def task_status(token, region, task_id):
         print("The requested service is unavailable.")
         sys.exit()
 
+    #Load json response dictionary into data.
     data = r.json()
+    #Check status of export/image task.
     status = data["status"]
     while status != 'success'and status != 'failure':
         print(status)
         r = requests.get(url, headers=headers)
-        data = r.json()
+
+        i = 3
+        print("test", i)
+        i = i + 1
+        print(r.status_code)
+        if r.status_code == 201:
+            print("Success Request succeeded.")
+        elif r.status_code == 400:
+            print("A general error has occured.")
+            sys.exit()
+        elif r.status_code == 401:
+            print("Unauthorized")
+            sys.exit()
+        elif r.status_code == 403:
+            print("Forbidden")
+            sys.exit()
+        elif r.status_code == 405:
+            print("Bad Method")
+            sys.exit()
+        elif r.status_code == 413:
+            print("Over Limit 	The number of items returned is above the allowed limit.")
+            sys.exit()
+        elif r.status_code == 415:
+            print("Bad media type. This may result if the wrong media type is used in the cURL request.")
+            sys.exit()
+        elif r.status_code == 500:
+            print("API Fault")
+            sys.exit()
+        elif r.status_code == 503:
+            print("The requested service is unavailable.")
+            #sys.exit()
+
+        while True:
+            try:
+                data = r.json()
+                break
+            except JSONDecodeError as e:
+                time.sleep(10)
+                pass
         status = data["status"]
-        time.sleep(30)
+        time.sleep(10)
         if status == 'failure':
             print("Something went wrong.")
             print(data["message"])
 
     print(status)
 
-# Checks to see if a container exists. If it doesn't it creats the container.
+# Checks to see if a container exists. If it doesn't, the container is created.
 def create_container(token, account, region, container):
+    #Setup the api call. Assing proper endpoint to url.
     if region == "dfw":
         url = "https://storage101.dfw1.clouddrive.com/v1/MossoCloudFS_" + account + "/" + container
     elif region == "iad":
@@ -281,13 +360,14 @@ def create_container(token, account, region, container):
 
     headers = {"X-Auth-Token": token}
 
-    #Check to see if container exists. If it does  not "status_code == 404" then create the container.
+    #Check to see if container exists. If not create container.
     try:
         r = requests.get(url,headers=headers)
     except requests.ConnectionError as e:
         print("Check your interwebs!")
         sys.exit()
 
+    #Check status code. If status code is 404, the container will be created.
     if r.status_code == 200:
         print("OK. 	The request succeeded.")
     elif r.status_code == 204:
@@ -300,6 +380,7 @@ def create_container(token, account, region, container):
         except requests.ConnectionError as e:
             print("Check your interwebs!")
 
+        #Check status code from the put request.
         if r.status_code == 201:
             print("Created . The request has been fulfilled. The new container has been created.")
         elif r.status_code == 202:
@@ -324,8 +405,9 @@ parser.add_argument("-r", "--region", help="Region of the image.")
 parser.add_argument("-f", "--file", help="Filename to download/upload.")
 args = parser.parse_args()
 
-# get token and account information. function returns a tuple with token and account.
+#Get token and account information. function returns a tuple with token and account.
 token,account = get_token(args.username,args.password)
+print(token)
 
 # Call function that matches action from user. If user enters an action not listed
 # then help will run.

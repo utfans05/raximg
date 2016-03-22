@@ -1,5 +1,4 @@
 #todo
-Add comments to code.
 Work on Documentation.
 Learn how to git.(Improve workflow and cooperation)
 When specifying -p for password raximg should ask for password without echoing to stdout.
@@ -8,21 +7,15 @@ Change progress bar reports from bytes to percentage.
 Add logging and cleanup debug output to terminal.
 Clean up code.
 Add code for Windows compatibility.(Mac and Linux appear to behave the same.)
-Bundle python and raximg in single executable for Win, Lin and Mac.
+Bundle python and raximg in a single executable for Win, Lin and Mac.
 Create a gui for raximg.
-Bundle python and gui/raximg in single executable for Win, Lin and Mac.
+Bundle python and gui/raximg in a single executable for Win, Lin and Mac.
 
 #Function specific changes
-update_img()
-  Large uploads, files > 5GB. Split files into equal chunks and upload. Create manifest file for vhd.
-  Add progress bar
-
 import_img()
   Check for filesize on import. File size limit is at 40GB I believe.
-
-import_task()
   Defaults to vm_mode = hvm. Add update function to the import task.
-  output new imported image id so it can be used in other functions. 
+  output new imported image id so it can be used in other functions.
 
 task_status()
   Debug task_status() Sometimes it crashes with exception thrown. Still finishes successfully every time this has happened.
@@ -32,6 +25,8 @@ download_img()
 
 upload_img()
   After upload verify the file in cloudfiles.
+  Large uploads, files > 5GB. Split files into equal chunks and upload. Create manifest file for vhd.
+  Add progress bar
 
 update_img()
   Change function to give user option to set xen or hvm.
