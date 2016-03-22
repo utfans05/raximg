@@ -2,7 +2,7 @@
 Work on Documentation.
 Learn how to git.(Improve workflow and cooperation)
 When specifying -p for password raximg should ask for password without echoing to stdout.
-Modify argparse for better handling of command line options (linking options with actions).
+Modify argparse to better handle command line options (linking options with actions).
 Change progress bar reports from bytes to percentage.
 Add logging and cleanup debug output to terminal.
 Clean up code.

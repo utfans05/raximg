@@ -178,7 +178,7 @@ def upload_img(token, account,region, container, vhd):
 
     print("Upload Finished.")
 
-#Import img task and checks status of task
+#Import img task and checks status of task.
 def import_img(token, region, container, vhd):
     #Setup api call
     url = "https://" + region +".images.api.rackspacecloud.com/v2/tasks"
@@ -230,7 +230,7 @@ def import_img(token, region, container, vhd):
     #Check task status.
     task_status(token,region,task_id)
 
-#Updates the image meta data filed vm_mode to hvm
+#Updates the image meta data field vm_mode to hvm.
 def update_img(token,region,image):
     #Setting up the api call.
     url = "https://" + region + ".images.api.rackspacecloud.com/v2/images/" + image
@@ -242,7 +242,6 @@ def update_img(token,region,image):
     print(r.text)
     print(r.json)
 
-
 #Checks the status of the export/import task.
 def task_status(token, region, task_id):
     #Setup the api call.
@@ -252,16 +251,11 @@ def task_status(token, region, task_id):
     #Making the api call. Need to clean up the debug output.
     try:
         r = requests.get(url, headers=headers)
-        print(r.headers)
-        print(r.text['0'])
-        print("test1")
-        print(r.status_code)
     except requests.ConnectionError as e:
         print("Check your interwebs!")
         sys.exit()
 
     #Check status code. Need to clean up the debug output.
-    print("test2")
     print(r.status_code)
     if r.status_code == 201:
         print("Success Request succeeded.")
@@ -298,9 +292,6 @@ def task_status(token, region, task_id):
         print(status)
         r = requests.get(url, headers=headers)
 
-        i = 3
-        print("test", i)
-        i = i + 1
         print(r.status_code)
         if r.status_code == 201:
             print("Success Request succeeded.")
@@ -407,7 +398,6 @@ args = parser.parse_args()
 
 #Get token and account information. function returns a tuple with token and account.
 token,account = get_token(args.username,args.password)
-print(token)
 
 # Call function that matches action from user. If user enters an action not listed
 # then help will run.

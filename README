@@ -1,14 +1,14 @@
-This script is not supported by Rackspace. I am learning python and using this project to practice what I am learning. Advise and code contributions are welcomed.
+This script is not supported by Rackspace and uses python 3. I am learning python and using this project to practice what I am learning. Advise and code contributions are welcomed.
 
 *** WIP ***
 
-Raximg tries to ease the process of importing and exporting Rackspace Public Cloud server images. At this moment the process to export/import images requires and api call to export the image to a Cloud Files container. Once the export is finished, you can download the VHD file and upload it to the another region in a Cloud Files container. Once the upload is finished you then run an import task via the api and your iamge will be ready to build from. PVHVM cloud servers require the image meta data field vm_mode to be set to hvm, in order to build correctly. The export task changes most of the meta data and the default value for vm_mode is xen. To change the vm_mode field to hvm you can use the update action.
+Raximg tries to ease the process of importing and exporting Rackspace Public Cloud server images. At this moment the process to export/import images requires an api call to export the image to a Cloud Files container. Once the export is finished, you can download the VHD file and upload it to another region in a Cloud Files container. Once the upload is finished you then run an import task via the api and your iamge will be ready to build from. PVHVM cloud servers require the image meta data field vm_mode to be set to hvm, in order to build correctly. The export task changes most of the meta data and the default value for vm_mode is xen. To change the vm_mode field to hvm you can use the update action.
 
 USAGE:
 positional arguments:
   action
 
-Actions include: import,export,download, status,upload or update.
+Actions include: import,export,download,upload or update.
 
 optional arguments:
 
@@ -31,5 +31,9 @@ optional arguments:
 
   -f FILE, --file FILE  Filename to download/upload.
 
-EXAMPLE:
+EXAMPLES:
 raximg export -u $username -p $password -r $region -c $container -i $image
+raximg download -u $username -p $password -r $region -c $container -f $filename
+raximg upload -u $username -p $password -r $region -c $container -f $filename
+raximg import -u $username -p $password -r $region -c $container -f $filename
+raximg update -u $username -p $password -r $region -i $image
