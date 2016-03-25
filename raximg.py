@@ -4,8 +4,34 @@ import time
 import argparse
 import logging
 import sys
+import getpass
 from clint.textui import progress
 logging.captureWarnings(True)
+
+#required for getpass and argparse. 
+class PasswordPromptAction(argparse.Action):
+    def __init__(self,
+             option_strings,
+             dest=None,
+             nargs=0,
+             default=None,
+             required=False,
+             type=None,
+             metavar=None,
+             help=None):
+        super(PasswordPromptAction, self).__init__(
+             option_strings=option_strings,
+             dest=dest,
+             nargs=nargs,
+             default=default,
+             required=required,
+             metavar=metavar,
+             type=type,
+             help=help)
+
+    def __call__(self, parser, args, values, option_string=None):
+        password = getpass.getpass()
+        setattr(args, self.dest, password)
 
 #Request to authenticate and returns a tuple with token and account number.
 def get_token(username,password):
@@ -389,12 +415,14 @@ def create_container(token, account, region, container):
 parser = argparse.ArgumentParser()
 parser.add_argument("action", help="Actions include: import,export,download, upload or update")
 parser.add_argument("-u", "--username", help="Rackspace cloud account username.")
-parser.add_argument("-p", "--password", help="Rackspace cloud account password.")
+#parser.add_argument('-p', "--password" help="Rackspace cloud account password. "dest='password', action=PasswordPromptAction, type=str, required=True)
+parser.add_argument('-p', "--password", dest='password', action=PasswordPromptAction, type=str, required=True, help="Rackspace cloud account password")
 parser.add_argument("-i", "--image", help="Image to use for action.")
 parser.add_argument("-c", "--container", help="Container to use for action.")
 parser.add_argument("-r", "--region", help="Region of the image.")
 parser.add_argument("-f", "--file", help="Filename to download/upload.")
 args = parser.parse_args()
+
 
 #Get token and account information. function returns a tuple with token and account.
 token,account = get_token(args.username,args.password)
